@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PBX SCH ID - Sleman
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4.0
 // @description  Forces PBx SCH ID website into dark theme with custom things.
 // @author       Kanade
 // @match        https://*.app.pbx.sch.id/*
@@ -13,173 +13,194 @@
 (function() {
     'use strict';
 
-    const scriptVersion = 1.3;
+    const scriptVersion = 1.4;
     const scriptState = "Stable";
 
     const customCSS = `
-/* Dark Mode: Apply your custom lighter text color */
-[data-bs-theme="dark"] .card-body .text-muted {
-    color: #C3C3D9 !important;
-}
+        [data-bs-theme="dark"] .card-body .text-muted {
+            color: #C3C3D9 !important;
+        }
 
-/* Light Mode: Fallback to Metronic's standard dark-muted text or a balanced dark gray for readability */
-[data-bs-theme="light"] .card-body .text-muted,
-:root:not([data-bs-theme="dark"]) .card-body .text-muted {
-    color: #7e8299 !important;
-}
+        [data-bs-theme="light"] .card-body .text-muted,
+        :root:not([data-bs-theme="dark"]) .card-body .text-muted {
+            color: #7e8299 !important;
+        }
 
-/* Target the header flex container inside ANY wrapper div within card-body (with or without borders) */
-.card-body > div > .d-flex.justify-content-between,
-.card-body .border-bottom > .d-flex.justify-content-between {
-    display: grid !important;
-    grid-template-columns: 8fr 2fr !important;
-    gap: 1rem !important;
-    align-items: start !important;
-}
+        .card-body > div > .d-flex.justify-content-between,
+        .card-body .border-bottom > .d-flex.justify-content-between {
+            display: grid !important;
+            grid-template-columns: 8fr 2fr !important;
+            gap: 1rem !important;
+            align-items: start !important;
+        }
 
-/* Ensure children inside those rows respect the grid columns and don't overflow */
-.card-body > div > .d-flex.justify-content-between > div,
-.card-body .border-bottom > .d-flex.justify-content-between > div {
-    width: 100% !important;
-    flex: unset !important;
-}
+        /* Ensure children inside those rows respect the grid columns and don't overflow */
+        .card-body > div > .d-flex.justify-content-between > div,
+        .card-body .border-bottom > .d-flex.justify-content-between > div {
+            width: 100% !important;
+            flex: unset !important;
+        }
 
-/* Keep the button container neatly right-aligned */
-.card-body > div > .d-flex.justify-content-between > div.flex-shrink-0,
-.card-body .border-bottom > .d-flex.justify-content-between > div.flex-shrink-0 {
-    display: flex;
-    justify-content: flex-end;
-}
+        .card-body > div > .d-flex.justify-content-between > div.flex-shrink-0,
+        .card-body .border-bottom > .d-flex.justify-content-between > div.flex-shrink-0 {
+            display: flex;
+            justify-content: flex-end;
+        }
 
-.card-body .d-flex.align-items-center.bg-light {
-    display: flex !important;
-    flex-wrap: wrap !important;
-}
+        .card-body .d-flex.align-items-center.bg-light {
+            display: flex !important;
+            flex-wrap: wrap !important;
+        }
 
-/* Main text column takes full width on the first line */
-.card-body .d-flex.align-items-center.bg-light > div:first-child {
-    flex: 1 1 100% !important;
-    max-width: 100% !important;
-    margin-bottom: 0.5rem !important;
-}
+        .card-body .d-flex.align-items-center.bg-light > div:first-child {
+            flex: 1 1 100% !important;
+            max-width: 100% !important;
+            margin-bottom: 0.5rem !important;
+        }
 
-/* Wrap badge and button together or style them to match dimensions */
-.card-body .d-flex.align-items-center.bg-light > span.badge,
-.card-body .d-flex.align-items-center.bg-light > button {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-sizing: border-box !important;
-    vertical-align: middle !important;
-}
+        .card-body .d-flex.align-items-center.bg-light > span.badge,
+        .card-body .d-flex.align-items-center.bg-light > button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+            vertical-align: middle !important;
+        }
 
-.card-body .d-flex.align-items-center.bg-light > span.badge {
-    height: 24px !important; /* Matches typical compact button height */
-    padding: 1.7rem 1.25rem !important;
-    font-size: 0.75rem !important;
-}
+        .card-body .d-flex.align-items-center.bg-light > span.badge {
+            height: 24px !important; /* Matches typical compact button height */
+            padding: 1.7rem 1.25rem !important;
+            font-size: 0.75rem !important;
+        }
 
-.card-body .cp-collapse-content.expanded {
-    gap: 0.75rem !important; /* Forces Bootstrap gap-2 sizing equivalent */
-}
+        .card-body .cp-collapse-content.expanded {
+            gap: 0.75rem !important; /* Forces Bootstrap gap-2 sizing equivalent */
+        }
+
+        @keyframes opacity-blink-slow {
+            0% {
+                opacity: 1;
+            }
+            20% {
+                opacity: 1;
+            }
+            40% {
+                opacity: 0.75;
+            }
+            50% {
+                opacity: 0.25;
+            }
+            60% {
+                opacity: 0.75;
+            }
+            80% {
+                opacity: 0.75;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .progress-bar {
+            animation: opacity-blink-slow 2s linear infinite;
+        }
 
 /* Targets card descriptions, excluding anything inside #custom-summary-banner */
-#kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7 {
-    position: relative !important;
-    max-height: 2.8em !important;
-    overflow: hidden !important;
-    transition: max-height 0.4s ease, opacity 0.3s ease !important;
-    cursor: pointer;
-}
+:root.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7 {
+            position: relative !important;
+            max-height: 2.8em !important;
+            overflow: hidden !important;
+            transition: max-height 0.4s ease, opacity 0.3s ease !important;
+            cursor: pointer;
+        }
 
 /* Responsive gradient fade using CSS variables that adapt to Light and Dark mode */
-#kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7::after {
-    content: "" !important;
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 1.5em !important;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--bs-card-bg, #ffffff)) !important;
-    pointer-events: none !important;
-    transition: opacity 0.3s ease;
-}
+:root.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7::after {
+            content: "" !important;
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 1.5em !important;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--bs-card-bg, #ffffff)) !important;
+            pointer-events: none !important;
+            transition: opacity 0.3s ease;
+        }
 
 /* Expanded state on hover */
-#kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover {
-    max-height: 200px !important;
-}
+:root.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover {
+            max-height: 200px !important;
+        }
 
-#kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover::after {
-    opacity: 0 !important;
-}
+:root.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover::after {
+            opacity: 0 !important;
+        }
 
-/* Collapsible container styling */
-.cp-collapse-container {
-    margin-top: 0.5rem;
-}
+        /* Collapsible container styling */
+        .cp-collapse-container {
+            margin-top: 0.5rem;
+        }
 
-.cp-collapse-toggle {
-    cursor: pointer;
-    user-select: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #009ef7;
-    background: transparent;
-    border: none;
-    padding: 0;
-    margin-bottom: 0.5rem;
-}
+        .cp-collapse-toggle {
+            cursor: pointer;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #009ef7;
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin-bottom: 0.5rem;
+        }
 
-.cp-collapse-toggle:hover {
-    color: #0095e8;
-    text-decoration: underline;
-}
+        .cp-collapse-toggle:hover {
+            color: #0095e8;
+            text-decoration: underline;
+        }
 
-.cp-collapse-content {
-    display: none;
-    flex-direction: column;
-    gap: 0.5rem;
-}
+        .cp-collapse-content {
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
 
-.cp-collapse-content.expanded {
-    display: flex !important;
-}
+        .cp-collapse-content.expanded {
+            display: flex !important;
+        }
 
-/* Custom modal overlay background */
-#custom-settings-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 1099;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-#custom-settings-modal.active {
-    opacity: 1;
-}
-/* Modal box container */
-.custom-settings-dialog {
-    background: var(--bs-body-bg, #ffffff);
-    color: var(--bs-body-color, #3f4254);
-    width: 100%;
-    max-width: 450px;
-    border-radius: 0.75rem;
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
-    transform: translateY(-20px);
-    transition: transform 0.3s ease;
-    overflow: hidden;
-}
-#custom-settings-modal.active .custom-settings-dialog {
-    transform: translateY(0);
-}
+        #custom-settings-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1099;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #custom-settings-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        .custom-settings-dialog {
+            background: var(--bs-body-bg, #ffffff);
+            color: var(--bs-body-color, #3f4254);
+            width: 100%;
+            max-width: 450px;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+        #custom-settings-modal.active .custom-settings-dialog {
+            transform: translateY(0);
+        }
     `;
 
     // document-start can run before <head> exists.
@@ -191,6 +212,22 @@
         const addStyle = () => (document.head || document.documentElement).appendChild(styleNode);
         if (document.head || document.documentElement) addStyle();
         else document.addEventListener('DOMContentLoaded', addStyle, { once: true });
+    }
+
+    const textarea = document.querySelector('textarea[name="catatan"]');
+
+    if (textarea) {
+        textarea.rows = 6;
+    } else {
+        // If the element loads dynamically, use a MutationObserver or a short interval to catch it
+        const observer = new MutationObserver((mutations, obs) => {
+            const el = document.querySelector('textarea[name="catatan"]');
+            if (el) {
+                el.rows = 6;
+                obs.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
     }
 
     // Safe wrapper to execute Metronic calls only when the library is fully loaded
@@ -478,19 +515,12 @@
         const userMenu = document.querySelector('.menu.menu-sub-dropdown');
         if (!userMenu) return;
 
-        // Prevent duplicate insertion
-        if (userMenu.querySelector('#custom-settings-trigger')) return;
-
         // Load saved theme preference on startup
         const savedTheme = localStorage.getItem('tampermonkey_theme_mode') || 'dark';
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
 
-        const logoutForm = userMenu.querySelector('form[action*="logout"]');
-        if (!logoutForm) return;
-        const logoutItem = logoutForm.closest('.menu-item');
-        const logoutSeparator = logoutItem ? logoutItem.previousElementSibling : null;
-
-        if (logoutSeparator) {
+        // Add the entry even when the portal changes/removes its logout separator.
+        if (!userMenu.querySelector('#custom-settings-trigger')) {
             const settingsItem = document.createElement('div');
             settingsItem.className = 'menu-item px-5';
             settingsItem.id = 'custom-settings-trigger';
@@ -500,7 +530,11 @@
                     <span class="menu-title">Pengaturan Script</span>
                 </a>
             `;
-            userMenu.insertBefore(settingsItem, logoutSeparator);
+            const logoutControl = userMenu.querySelector(
+                'form[action*="logout"], a[href*="logout"], button[name*="logout"]'
+            );
+            const logoutItem = logoutControl?.closest('.menu-item') || logoutControl;
+            userMenu.insertBefore(settingsItem, logoutItem || null);
 
             // Prevent third-party listeners (like Quill) from swallowing the click
             settingsItem.querySelector('a').addEventListener('click', (e) => {
@@ -518,7 +552,7 @@
             modalWrapper.innerHTML = `
                 <div class="custom-settings-dialog">
                     <div class="card-header d-flex align-items-center justify-content-between p-4 border-bottom">
-                        <h5 class="fw-bold m-0"><i class="ki-outline ki-setting-3 fs-2 me-2"></i> Pengaturan Dasbor</h5>
+                        <h5 class="fw-bold m-0"><i class="ki-outline ki-setting-3 fs-2 me-2"></i> Pengaturan Script</h5>
                         <button type="button" class="btn btn-sm btn-icon btn-light-danger" id="close-settings-modal">
                             <i class="ki-outline ki-cross fs-2"></i>
                         </button>
@@ -553,6 +587,19 @@
                                 </div>
                             </div>
 
+                            <!-- Card description text expansion -->
+                            <div style="display: grid; grid-template-columns: 8fr 2fr; align-items: center; gap: 1rem;">
+                                <div style="min-width: 0;">
+                                    <div class="fw-bold text-gray-800">Batasi Deskripsi CP</div>
+                                    <span class="text-muted fs-7">Sembunyikan dan perluas otomatis deskripsi CP.</span>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end;">
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" id="text-expansion-toggle" ${localStorage.getItem('tampermonkey_text_expansion') !== 'false' ? 'checked' : ''}>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="separator my-2"></div>
 
                             <!-- Script Version Info -->
@@ -580,6 +627,13 @@
             const saveBtn = document.getElementById('save-settings-btn');
             const lightBtn = document.getElementById('theme-light-btn');
             const darkBtn = document.getElementById('theme-dark-btn');
+            const textExpansionToggle = document.getElementById('text-expansion-toggle');
+
+            textExpansionToggle.addEventListener('change', () => {
+                const enabled = textExpansionToggle.checked;
+                localStorage.setItem('tampermonkey_text_expansion', String(enabled));
+                document.documentElement.classList.toggle('cp-text-expansion-enabled', enabled);
+            });
 
             function closeModal() {
                 modal.classList.remove('active');
@@ -644,6 +698,8 @@
     // 1. Theme application on startup (runs immediately)
     const savedTheme = localStorage.getItem('tampermonkey_theme_mode') || 'dark';
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    const textExpansionEnabled = localStorage.getItem('tampermonkey_text_expansion') !== 'false';
+    document.documentElement.classList.toggle('cp-text-expansion-enabled', textExpansionEnabled);
 
     // 2. Global click listener for profile menu (runs immediately)
     document.addEventListener('click', (e) => {
@@ -667,9 +723,13 @@
             rewriteLabels();
         }, 250);
 
-        if (mutations.some(m => [...m.addedNodes].some(node => node.nodeType === Node.ELEMENT_NODE &&
-            (node.matches?.('.menu.menu-sub-dropdown') || node.querySelector?.('.menu.menu-sub-dropdown'))))) {
-            setTimeout(initUserMenuEnhancements, 50);
+        for (const mutation of mutations) {
+            if (mutation.addedNodes.length) {
+                const dropdown = document.querySelector('.menu.menu-sub-dropdown');
+                if (dropdown && !dropdown.querySelector('#custom-settings-trigger')) {
+                    initUserMenuEnhancements();
+                }
+            }
         }
       });
       observer.observe(document.body, { childList: true, subtree: true });
