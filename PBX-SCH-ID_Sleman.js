@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PBX SCH ID - Sleman
 // @namespace    http://tampermonkey.net/
-// @version      1.4.0
+// @version      1.5.0
 // @description  Forces PBx SCH ID website into dark theme with custom things.
 // @author       Kanade
 // @match        https://*.app.pbx.sch.id/*
@@ -13,7 +13,7 @@
 (function() {
     'use strict';
 
-    const scriptVersion = 1.4;
+    const scriptVersion = 1.5;
     const scriptState = "Stable";
 
     const customCSS = `
@@ -236,6 +236,22 @@
         .card[x-data*="openEvent"] + .card.mt-5 > .card-body > div {
             gap: 0.4rem !important;
         }
+
+        .cp-submission-description {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+            white-space: normal;
+            cursor: pointer;
+            margin: 0 1.25rem 1rem;
+        }
+
+        .cp-submission-description.is-expanded {
+            display: block;
+            -webkit-line-clamp: unset;
+            overflow: visible;
+        }
     `;
 
     // document-start can run before <head> exists.
@@ -254,7 +270,6 @@
     if (textarea) {
         textarea.rows = 6;
     } else {
-        // If the element loads dynamically, use a MutationObserver or a short interval to catch it
         const observer = new MutationObserver((mutations, obs) => {
             const el = document.querySelector('textarea[name="catatan"]');
             if (el) {
@@ -265,7 +280,6 @@
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    // Safe wrapper to execute Metronic calls only when the library is fully loaded
     let metronicRetryCount = 0;
     function safeInitMetronic() {
         if (typeof KTMenu !== 'undefined' && typeof KTMenu.createInstances === 'function') {
@@ -277,7 +291,6 @@
         }
     }
 
-    // Logic to wrap sub-items into a collapsible section
     function setupCollapsibles() {
         const containers = document.querySelectorAll('.card-body .d-flex.flex-column.gap-1');
 
@@ -337,7 +350,6 @@
 
     // Rewrite ATP labels
     function rewriteLabels() {
-        // Retain source strings so repeated calls never add another custom prefix.
         const originalText = rewriteLabels.originalText || (rewriteLabels.originalText = new WeakMap());
         const originalAttrs = rewriteLabels.originalAttrs || (rewriteLabels.originalAttrs = new WeakMap());
         const getOriginalAttr = (element, name) => {
@@ -366,7 +378,6 @@
             cpSections.forEach((section, cpIndex) => {
                 const cpAutoNum = cpIndex + 1;
 
-                // Safely update CP heading text & capture old number
                 const cpHeading = section.querySelector('h5.fw-bold');
                 if (cpHeading) {
                     const walker = document.createTreeWalker(cpHeading, NodeFilter.SHOW_TEXT, null, false);
@@ -379,13 +390,12 @@
                             const match = sourceText.match(/CP(\d+)/);
                             const oldNum = match ? match[1] : '';
 
-                            // Transform to: CP-PBD-1 [358]
                             node.nodeValue = sourceText.replace(/CP\d+/, `CP-${mapelCode}${cpAutoNum} [${oldNum}]`);
                         }
                     }
                 }
 
-                // Safely update CP Button attributes
+                // Update CP Button attributes
                 const cpButton = section.querySelector('.btn-open-submit[data-title*="CP"]');
                 if (cpButton) {
                     let titleAttr = getOriginalAttr(cpButton, 'data-title');
@@ -409,7 +419,7 @@
                     }
                 }
 
-                // Safely update sub-item TPs
+                // Update sub-item TPs
                 const tpRows = section.querySelectorAll('.d-flex.align-items-center.bg-light');
                 tpRows.forEach((tpRow, tpIndex) => {
                     const tpAutoNum = tpIndex + 1;
@@ -443,7 +453,6 @@
     });
 
     function insertDashboardSummaryCard() {
-        // Only run if on the correct student route
         if (!window.location.pathname.includes('/siswa/atp')) return;
 
         const appContent = document.querySelector('#kt_app_content.app-content');
@@ -451,7 +460,6 @@
 
         if (appContent.querySelector('#custom-summary-banner')) return;
 
-        // Aggregate counts for T, TS, and SB
         let totalT = 0;
         let totalTS = 0;
         let totalSB = 0;
@@ -462,7 +470,6 @@
 
         mapelCards.forEach(card => {
             if (countMode === 'atp') {
-                // ATP Mode: Seek inside the collapsible content containers using exact uppercase text
                 const collapseContainers = card.querySelectorAll('.cp-collapse-content');
                 collapseContainers.forEach(container => {
                     const spans = container.querySelectorAll('span.badge');
@@ -478,7 +485,6 @@
                     });
                 });
             } else {
-                // CP Mode: Your original proven header badge counting logic
                 const badges = card.querySelectorAll('.badge.fs-8');
                 badges.forEach(badge => {
                     const text = badge.textContent.trim();
@@ -554,7 +560,6 @@
         const savedTheme = localStorage.getItem('tampermonkey_theme_mode') || 'dark';
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
 
-        // Add the entry even when the portal changes/removes its logout separator.
         if (!userMenu.querySelector('#custom-settings-trigger')) {
             const settingsItem = document.createElement('div');
             settingsItem.className = 'menu-item px-5';
@@ -571,7 +576,6 @@
             const logoutItem = logoutControl?.closest('.menu-item') || logoutControl;
             userMenu.insertBefore(settingsItem, logoutItem || null);
 
-            // Prevent third-party listeners (like Quill) from swallowing the click
             settingsItem.querySelector('a').addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -683,7 +687,7 @@
                 if (e.target === modal) closeModal();
             });
 
-            // Theme Switcher Handlers inside the Modal
+            // Theme Switcher Handlers
             lightBtn.addEventListener('click', () => {
                 document.documentElement.setAttribute('data-bs-theme', 'light');
                 localStorage.setItem('tampermonkey_theme_mode', 'light');
@@ -701,11 +705,11 @@
             const countCpBtn = document.getElementById('count-cp-btn');
             const countAtpBtn = document.getElementById('count-atp-btn');
 
+            // Re-run summary banner calculation if on the dashboard
             countCpBtn.addEventListener('click', () => {
                 localStorage.setItem('tampermonkey_count_mode', 'cp');
                 countCpBtn.classList.add('active');
                 countAtpBtn.classList.remove('active');
-                // Re-run summary banner calculation if on the dashboard
                 if (typeof insertDashboardSummaryCard === 'function') {
                     const existingBanner = document.getElementById('custom-summary-banner');
                     if (existingBanner) existingBanner.remove();
@@ -713,11 +717,11 @@
                 }
             });
 
+            // Re-run summary banner calculation if on the dashboard
             countAtpBtn.addEventListener('click', () => {
                 localStorage.setItem('tampermonkey_count_mode', 'atp');
                 countAtpBtn.classList.add('active');
                 countCpBtn.classList.remove('active');
-                // Re-run summary banner calculation if on the dashboard
                 if (typeof insertDashboardSummaryCard === 'function') {
                     const existingBanner = document.getElementById('custom-summary-banner');
                     if (existingBanner) existingBanner.remove();
@@ -730,21 +734,103 @@
     let timeoutId = null;
     let setup = false;
 
-    // 1. Theme application on startup (runs immediately)
     const savedTheme = localStorage.getItem('tampermonkey_theme_mode') || 'dark';
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
     const textExpansionEnabled = localStorage.getItem('tampermonkey_text_expansion') !== 'false';
     document.documentElement.classList.toggle('cp-text-expansion-enabled', textExpansionEnabled);
     document.documentElement.classList.toggle('is-atp-page', window.location.pathname.startsWith('/siswa/atp'));
 
-    // 2. Global click listener for profile menu (runs immediately)
     document.addEventListener('click', (e) => {
         if (e.target.closest('[data-kt-menu-trigger], .menu-sub-dropdown, .symbol')) {
             setTimeout(initUserMenuEnhancements, 50);
         }
     });
 
-    // 3. Clean MutationObserver for DOM changes and collapsibles (no nested listeners)
+    let pendingSubmissionDescription = '';
+    let submissionOverlayObserver = null;
+    let submissionOverlayTimer = null;
+
+    function addDescriptionToSubmissionForm() {
+        if (!pendingSubmissionDescription) return false;
+
+        const visibleForms = [...document.querySelectorAll('form')].filter(form =>
+            form.getClientRects().length > 0 && getComputedStyle(form).visibility !== 'hidden'
+        );
+        const overlayForm = form => form.closest('.modal, [role="dialog"], [class*="overlay"], [class*="modal"]');
+        const submissionForm = visibleForms.find(form =>
+            form.querySelector('input[type="file"], textarea') &&
+            overlayForm(form)
+        ) || visibleForms.find(overlayForm);
+        if (!submissionForm) return false;
+
+        const overlay = submissionForm.closest('.modal, [role="dialog"], [class*="overlay"], [class*="modal"]') || submissionForm;
+        const host = overlay.querySelector('.modal-body') || submissionForm;
+        let descriptionPanel = overlay.querySelector('#cp-submission-description');
+        if (!descriptionPanel) {
+            descriptionPanel = document.createElement('div');
+            descriptionPanel.id = 'cp-submission-description';
+            descriptionPanel.className = 'alert alert-light-primary cp-submission-description';
+            descriptionPanel.setAttribute('role', 'button');
+            descriptionPanel.setAttribute('tabindex', '0');
+            descriptionPanel.setAttribute('aria-expanded', 'false');
+            descriptionPanel.title = 'Click to expand description';
+            const toggleDescription = () => {
+                const expanded = descriptionPanel.classList.toggle('is-expanded');
+                descriptionPanel.setAttribute('aria-expanded', String(expanded));
+                descriptionPanel.title = expanded ? 'Click to collapse description' : 'Click to expand description';
+            };
+            descriptionPanel.addEventListener('click', toggleDescription);
+            descriptionPanel.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    toggleDescription();
+                }
+            });
+
+            const heading = [...overlay.querySelectorAll('h1, h2, h3, h4, h5, .modal-title')]
+                .find(element => /kirim\s+bukti/i.test(element.textContent));
+            const header = heading?.closest('.modal-header');
+            const insertionPoint = header || heading;
+            if (insertionPoint?.parentElement) {
+                insertionPoint.insertAdjacentElement('afterend', descriptionPanel);
+            } else {
+                host.insertBefore(descriptionPanel, host.firstChild);
+            }
+        }
+        descriptionPanel.textContent = pendingSubmissionDescription;
+        descriptionPanel.classList.remove('is-expanded');
+        descriptionPanel.setAttribute('aria-expanded', 'false');
+        descriptionPanel.title = 'Click to expand description';
+        return true;
+    }
+
+    document.addEventListener('click', (e) => {
+        const submitButton = e.target.closest('.btn-open-submit');
+        if (!submitButton) return;
+
+        const description = submitButton.closest('.d-flex.justify-content-between')
+            ?.querySelector('.text-muted.fs-7');
+        if (!description || !description.textContent.trim()) return;
+        pendingSubmissionDescription = description.textContent.trim();
+
+        if (submissionOverlayObserver) submissionOverlayObserver.disconnect();
+        clearTimeout(submissionOverlayTimer);
+        if (addDescriptionToSubmissionForm()) return;
+
+        submissionOverlayObserver = new MutationObserver(() => {
+            if (addDescriptionToSubmissionForm()) {
+                submissionOverlayObserver.disconnect();
+                submissionOverlayObserver = null;
+                clearTimeout(submissionOverlayTimer);
+            }
+        });
+        submissionOverlayObserver.observe(document.body, { childList: true, subtree: true, attributes: true });
+        submissionOverlayTimer = setTimeout(() => {
+            if (submissionOverlayObserver) submissionOverlayObserver.disconnect();
+            submissionOverlayObserver = null;
+        }, 5000);
+    }, true);
+
     function observePage() {
       if (!document.body || setup) return;
       setup = true;
@@ -752,7 +838,6 @@
         const isTyping = mutations.some(m => m.target.tagName === 'INPUT' || m.target.tagName === 'TEXTAREA');
         if (isTyping) return;
 
-        // Debounce setup collapsibles and label rewriting
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
             setupCollapsibles();
@@ -773,7 +858,6 @@
     if (document.body) observePage();
     else document.addEventListener('DOMContentLoaded', observePage, { once: true });
 
-    // Register once, outside the mutation callback, and also handle late script startup.
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', safeInitMetronic, { once: true });
     } else {
