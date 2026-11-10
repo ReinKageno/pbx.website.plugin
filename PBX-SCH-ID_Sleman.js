@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PBX SCH ID - Sleman
 // @namespace    http://tampermonkey.net/
-// @version      1.5.0
+// @version      1.6.0
 // @description  Forces PBx SCH ID website into dark theme with custom things.
 // @author       Kanade
 // @match        https://*.app.pbx.sch.id/*
@@ -13,16 +13,18 @@
 (function() {
     'use strict';
 
-    const scriptVersion = 1.5;
+    const scriptVersion = 1.6;
     const scriptState = "Stable";
 
     const customCSS = `
         [data-bs-theme="dark"] .card-body .text-muted {
+            --kn-text-color: #C3C3D9;
             color: #C3C3D9 !important;
         }
 
         [data-bs-theme="light"] .card-body .text-muted,
         :root:not([data-bs-theme="dark"]) .card-body .text-muted {
+            --kn-text-color: #7e8299;
             color: #7e8299 !important;
         }
 
@@ -82,7 +84,7 @@
                 opacity: 1;
             }
             20% {
-                opacity: 1;
+                opacity: 0.9;
             }
             40% {
                 opacity: 0.75;
@@ -94,7 +96,7 @@
                 opacity: 0.75;
             }
             80% {
-                opacity: 0.75;
+                opacity: 0.9;
             }
             100% {
                 opacity: 1;
@@ -105,7 +107,11 @@
             animation: opacity-blink-slow 2s linear infinite;
         }
 
-        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7 {
+        .form-check-label {
+            color: var(--kn-text-color) !important;
+        }
+
+        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7.cp-description-clamped {
             position: relative !important;
             max-height: 2.8em !important;
             overflow: hidden !important;
@@ -113,7 +119,7 @@
             cursor: pointer;
         }
 
-        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7::after {
+        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7.cp-description-clamped::after {
             content: "" !important;
             position: absolute !important;
             bottom: 0 !important;
@@ -125,11 +131,11 @@
             transition: opacity 0.3s ease;
         }
 
-        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover {
-            max-height: 200px !important;
+        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7.cp-description-clamped.cp-description-expanded {
+            max-height: none !important;
         }
 
-        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover::after {
+        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7.cp-description-clamped.cp-description-expanded::after {
             opacity: 0 !important;
         }
 
@@ -252,6 +258,10 @@
             -webkit-line-clamp: unset;
             overflow: visible;
         }
+
+        .form-switch .form-check-input {
+          width: 4rem;
+        }
     `;
 
     // document-start can run before <head> exists.
@@ -335,8 +345,12 @@
 
             function updateButtonText(isExpanded) {
                 toggleBtn.innerHTML = isExpanded
-                    ? `<span>▲</span> Hide all ATP (${allItems.length})`
-                    : `<span>▼</span> Show all ATP (${allItems.length})`;
+                    ? `<span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-up-fill" viewBox="0 0 16 16">
+                    <path d="m7.247 4.86-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>
+                  </svg></span> Hide all ATP (${allItems.length})`
+                    : `<span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+                    <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                  </svg></span> Show all ATP (${allItems.length})`;
             }
 
             // Set initial text if not already set
@@ -591,7 +605,7 @@
             modalWrapper.innerHTML = `
                 <div class="custom-settings-dialog">
                     <div class="card-header d-flex align-items-center justify-content-between p-4 border-bottom">
-                        <h5 class="fw-bold m-0"><i class="ki-outline ki-setting-3 fs-2 me-2"></i> Pengaturan Script</h5>
+                        <div class="d-flex fw-bold m-0 align-items-center ps-2"><i class="ki-outline ki-setting-3 fs-2 me-2"></i> <h5 class="mb-0">Pengaturan Script</h5></div>
                         <button type="button" class="btn btn-sm btn-icon btn-light-danger" id="close-settings-modal">
                             <i class="ki-outline ki-cross fs-2"></i>
                         </button>
@@ -672,6 +686,7 @@
                 const enabled = textExpansionToggle.checked;
                 localStorage.setItem('tampermonkey_text_expansion', String(enabled));
                 document.documentElement.classList.toggle('cp-text-expansion-enabled', enabled);
+                updateDescriptionClamps();
             });
 
             function closeModal() {
@@ -740,10 +755,47 @@
     document.documentElement.classList.toggle('cp-text-expansion-enabled', textExpansionEnabled);
     document.documentElement.classList.toggle('is-atp-page', window.location.pathname.startsWith('/siswa/atp'));
 
+    function updateDescriptionClamps() {
+        const selector = '#kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7';
+        const shouldClamp = document.documentElement.classList.contains('is-atp-page') &&
+            document.documentElement.classList.contains('cp-text-expansion-enabled');
+
+        document.querySelectorAll(selector).forEach(description => {
+            const wasExpanded = description.classList.contains('cp-description-expanded');
+            description.classList.remove('cp-description-clamped', 'cp-description-expanded');
+            description.removeAttribute('aria-expanded');
+            if (!shouldClamp) return;
+
+            const style = getComputedStyle(description);
+            const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.5;
+            if (description.scrollHeight > lineHeight * 2 + 1) {
+                description.classList.add('cp-description-clamped');
+                if (wasExpanded) {
+                    description.classList.add('cp-description-expanded');
+                    description.setAttribute('aria-expanded', 'true');
+                }
+            }
+        });
+    }
+    updateDescriptionClamps();
+    window.addEventListener('resize', updateDescriptionClamps);
+    window.addEventListener('load', updateDescriptionClamps, { once: true });
+    if (document.fonts?.ready) document.fonts.ready.then(updateDescriptionClamps);
+
     document.addEventListener('click', (e) => {
         if (e.target.closest('[data-kt-menu-trigger], .menu-sub-dropdown, .symbol')) {
             setTimeout(initUserMenuEnhancements, 50);
         }
+    });
+
+    document.addEventListener('click', (e) => {
+        const description = e.target.closest('.text-muted.fs-7');
+        if (!description || !description.matches(
+            '#kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7.cp-description-clamped'
+        )) return;
+
+        const expanded = description.classList.toggle('cp-description-expanded');
+        description.setAttribute('aria-expanded', String(expanded));
     });
 
     let pendingSubmissionDescription = '';
@@ -842,6 +894,7 @@
         timeoutId = setTimeout(() => {
             setupCollapsibles();
             rewriteLabels();
+            updateDescriptionClamps();
         }, 250);
 
         for (const mutation of mutations) {
@@ -853,7 +906,8 @@
             }
         }
       });
-      observer.observe(document.body, { childList: true, subtree: true });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      updateDescriptionClamps();
     }
     if (document.body) observePage();
     else document.addEventListener('DOMContentLoaded', observePage, { once: true });
