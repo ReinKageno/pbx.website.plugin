@@ -105,8 +105,7 @@
             animation: opacity-blink-slow 2s linear infinite;
         }
 
-/* Targets card descriptions, excluding anything inside #custom-summary-banner */
-:root.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7 {
+        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7 {
             position: relative !important;
             max-height: 2.8em !important;
             overflow: hidden !important;
@@ -114,8 +113,7 @@
             cursor: pointer;
         }
 
-/* Responsive gradient fade using CSS variables that adapt to Light and Dark mode */
-:root.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7::after {
+        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7::after {
             content: "" !important;
             position: absolute !important;
             bottom: 0 !important;
@@ -127,12 +125,11 @@
             transition: opacity 0.3s ease;
         }
 
-/* Expanded state on hover */
-:root.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover {
+        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover {
             max-height: 200px !important;
         }
 
-:root.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover::after {
+        :root.is-atp-page.cp-text-expansion-enabled #kt_app_content .card:not(#custom-summary-banner) .card-body > div > div > div .text-muted.fs-7:hover::after {
             opacity: 0 !important;
         }
 
@@ -200,6 +197,44 @@
         }
         #custom-settings-modal.active .custom-settings-dialog {
             transform: translateY(0);
+        }
+
+        /* Compact the calendar legend directly following the calendar card. */
+        .card[x-data*="openEvent"] + .card.mt-5 {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem 1rem !important;
+            margin-top: 0.75rem !important;
+            border: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .card[x-data*="openEvent"] + .card.mt-5 > .card-header {
+            display: block !important;
+            flex: 0 0 auto !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+        }
+
+        .card[x-data*="openEvent"] + .card.mt-5 > .card-header .card-title {
+            margin: 0 !important;
+            font-size: 1.25rem !important;
+        }
+
+        .card[x-data*="openEvent"] + .card.mt-5 > .card-body {
+            display: flex !important;
+            flex: 1 1 auto !important;
+            align-items: center !important;
+            gap: 0.5rem 1rem !important;
+            padding: 0 !important;
+        }
+
+        .card[x-data*="openEvent"] + .card.mt-5 > .card-body > div {
+            gap: 0.4rem !important;
         }
     `;
 
@@ -700,6 +735,7 @@
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
     const textExpansionEnabled = localStorage.getItem('tampermonkey_text_expansion') !== 'false';
     document.documentElement.classList.toggle('cp-text-expansion-enabled', textExpansionEnabled);
+    document.documentElement.classList.toggle('is-atp-page', window.location.pathname.startsWith('/siswa/atp'));
 
     // 2. Global click listener for profile menu (runs immediately)
     document.addEventListener('click', (e) => {
