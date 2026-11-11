@@ -1,11 +1,13 @@
 // ==UserScript==
 // @name         PBX SCH ID - Sleman
-// @namespace    http://tampermonkey.net/
-// @version      1.7.0
+// @namespace    https://github.com/ReinKageno/pbx.website.plugin
+// @version      1.7.1
 // @description  Enhance school experience with overhaul ui and function.
-// @author       Kanade
+// @author       Kanade, ReinKageno
 // @match        https://*.app.pbx.sch.id/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=sch.id
+// @iconURL      https://sleman.app.pbx.sch.id/assets/media/logos/logo-surat-pbx.png
+// @updateURL    https://raw.githubusercontent.com/ReinKageno/pbx.website.plugin/refs/heads/main/PBX-SCH-ID_Sleman.js
+// @downloadURL  https://raw.githubusercontent.com/ReinKageno/pbx.website.plugin/refs/heads/main/PBX-SCH-ID_Sleman.js
 // @grant        none
 // @run-at       document-start
 // ==/UserScript==
