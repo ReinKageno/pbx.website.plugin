@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         PBX SCH ID - Sleman
 // @namespace    http://tampermonkey.net/
-// @version      1.6.0
-// @description  Forces PBx SCH ID website into dark theme with custom things.
+// @version      1.7.0
+// @description  Enhance school experience with overhaul ui and function.
 // @author       Kanade
 // @match        https://*.app.pbx.sch.id/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sch.id
@@ -13,8 +13,11 @@
 (function() {
     'use strict';
 
-    const scriptVersion = 1.6;
+    const scriptVersion = 1.7;
     const scriptState = "Stable";
+    const attendanceAutomationSetting = 'tampermonkey_attendance_automation';
+    let attendanceAutomationStarted = false;
+    let attendanceAutomationRunId = 0;
 
     const customCSS = `
         [data-bs-theme="dark"] .card-body .text-muted {
@@ -566,12 +569,66 @@
         setTimeout(insertDashboardSummaryCard, 600);
     });
 
+    function isAttendanceAutomationEnabled() {
+        return localStorage.getItem(attendanceAutomationSetting) === 'true';
+    }
+
+    function waitForAttendanceElement(selector, timeout = 15000) {
+        return new Promise((resolve, reject) => {
+            const found = document.querySelector(selector);
+            if (found) return resolve(found);
+
+            const observer = new MutationObserver(() => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    observer.disconnect();
+                    resolve(element);
+                }
+            });
+
+            observer.observe(document.documentElement, { childList: true, subtree: true });
+            setTimeout(() => {
+                observer.disconnect();
+                reject(new Error(`Could not find: ${selector}`));
+            }, timeout);
+        });
+    }
+
+    async function runAttendanceAutomation() {
+        if (
+            attendanceAutomationStarted ||
+            !isAttendanceAutomationEnabled() ||
+            !window.location.pathname.includes('/siswa/dashboard')
+        ) return;
+
+        attendanceAutomationStarted = true;
+        const runId = ++attendanceAutomationRunId;
+
+        try {
+            const form = await waitForAttendanceElement('form[action*="/siswa/presensi"]');
+            if (!isAttendanceAutomationEnabled() || runId !== attendanceAutomationRunId) {
+                attendanceAutomationStarted = false;
+                return;
+            }
+
+            const present = form.querySelector('input[type="radio"][name="status"][value="1"]');
+            if (!present) throw new Error('Status 1 radio option was not found.');
+            present.click();
+
+            const submit = form.querySelector('button[type="submit"], input[type="submit"]');
+            if (!submit) throw new Error('Submit button was not found.');
+            if (isAttendanceAutomationEnabled() && runId === attendanceAutomationRunId) submit.click();
+        } catch (error) {
+            console.error('Attendance automation failed:', error);
+        }
+    }
+
     function initUserMenuEnhancements() {
         const userMenu = document.querySelector('.menu.menu-sub-dropdown');
         if (!userMenu) return;
 
         // Load saved theme preference on startup
-        const savedTheme = localStorage.getItem('tampermonkey_theme_mode') || 'dark';
+        const savedTheme = localStorage.getItem('tampermonkey_theme_mode') || 'light';
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
 
         if (!userMenu.querySelector('#custom-settings-trigger')) {
@@ -644,11 +701,24 @@
                             <div style="display: grid; grid-template-columns: 8fr 2fr; align-items: center; gap: 1rem;">
                                 <div style="min-width: 0;">
                                     <div class="fw-bold text-gray-800">Batasi Deskripsi CP</div>
-                                    <span class="text-muted fs-7">Sembunyikan dan perluas otomatis deskripsi CP.</span>
+                                    <span class="text-muted fs-7">Sembunyikan dan klik untuk perluas deskripsi CP.</span>
                                 </div>
                                 <div style="display: flex; justify-content: flex-end;">
                                     <div class="form-check form-switch form-check-custom form-check-solid">
                                         <input class="form-check-input" type="checkbox" id="text-expansion-toggle" ${localStorage.getItem('tampermonkey_text_expansion') !== 'false' ? 'checked' : ''}>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Attendance automation -->
+                            <div style="display: grid; grid-template-columns: 8fr 2fr; align-items: center; gap: 1rem;">
+                                <div style="min-width: 0;">
+                                    <div class="fw-bold text-gray-800">Presensi Otomatis</div>
+                                    <span class="text-muted fs-7">Otomatis mengisi presensi dengan status hadir saat berada di dashboard siswa.</span>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end;">
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" id="attendance-automation-toggle" ${isAttendanceAutomationEnabled() ? 'checked' : ''}>
                                     </div>
                                 </div>
                             </div>
@@ -681,12 +751,23 @@
             const lightBtn = document.getElementById('theme-light-btn');
             const darkBtn = document.getElementById('theme-dark-btn');
             const textExpansionToggle = document.getElementById('text-expansion-toggle');
+            const attendanceAutomationToggle = document.getElementById('attendance-automation-toggle');
 
             textExpansionToggle.addEventListener('change', () => {
                 const enabled = textExpansionToggle.checked;
                 localStorage.setItem('tampermonkey_text_expansion', String(enabled));
                 document.documentElement.classList.toggle('cp-text-expansion-enabled', enabled);
                 updateDescriptionClamps();
+            });
+
+            attendanceAutomationToggle.addEventListener('change', () => {
+                localStorage.setItem(attendanceAutomationSetting, String(attendanceAutomationToggle.checked));
+                if (attendanceAutomationToggle.checked) {
+                    runAttendanceAutomation();
+                } else {
+                    attendanceAutomationRunId++;
+                    attendanceAutomationStarted = false;
+                }
             });
 
             function closeModal() {
@@ -918,16 +999,7 @@
         safeInitMetronic();
     }
 
-    function closeModal() {
-        const modal = document.getElementById('custom-settings-modal');
-        if (!modal) return;
-
-        modal.classList.remove('active');
-        setTimeout(() => {
-            modal.style.display = 'none';
-            modal.style.pointerEvents = 'none';
-        }, 300);
-    }
+    runAttendanceAutomation();
 
     function openSettingsModal() {
         const modal = document.getElementById('custom-settings-modal');
